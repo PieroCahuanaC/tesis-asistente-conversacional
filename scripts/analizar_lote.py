@@ -30,6 +30,7 @@ AZUL, TINTA, TINTA2, REJILLA = "#2a78d6", "#0b0b0b", "#52514e", "#e4e3df"
 CONSULTA = """
 SELECT b.id_pregunta, b.configuracion, b.repeticion, p.tipo_consulta AS tipo, p.dificultad, k.correcta, k.abstencion,
        coalesce(k.con_cifras, false) AS con_cifras, k.cifras_no_sustentadas, b.tiempo_s::float AS tiempo_s,
+       (b.tiempo_s - coalesce(b.tiempo_perdido_s, 0))::float AS tiempo_neto_s, coalesce(b.reintentos, 0) AS reintentos,
        (b.tokens_entrada + b.tokens_salida) AS tokens, b.costo_usd::float AS costo_usd, b.respuesta
 FROM eval.calificacion k JOIN auditoria.bitacora b USING (id_ejecucion) JOIN eval.pregunta p USING (id_pregunta)
 WHERE b.lote = %s AND k.calificador = 'automatico'
@@ -166,6 +167,9 @@ def analizar(df: pd.DataFrame, salida: Path, titulo: str, df_estab: pd.DataFrame
     L += [f"| {r.configuracion} | {_n(r.tiempo_media_s)} | {_n(r.tiempo_mediana_s)} | {_n(r.tiempo_moda_s, 1)} | "
           f"{_n(r.tiempo_de_s)} | {_n(r.tiempo_p90_s)} | {_n(r.tokens_media, 0)} | {_n(r.costo_media_usd, 5)} | {_n(r.costo_total_usd, 4)} |"
           for r in cont.itertuples()]
+    if "tiempo_neto_s" in principal and principal.reintentos.sum():
+        L += ["", "Tiempo neto (sin reintentos del proveedor), mediana: " + "; ".join(
+            f"{r.configuracion} {_n(r.tiempo_neto_mediana_s)} s ({r.reintentos_total} reintentos)" for r in cont.itertuples())]
     L += ["", "## Contraste de hipótesis (α = 0,05)", "", "| Hipótesis | Prueba | p | p ajustado | Decisión | Detalle |",
           "|---|---|---|---|---|---|"]
     L += [f"| {p.hipotesis} | {p.prueba} | {_g(p.p_valor)} | {'' if p.p_ajustado is None else _g(p.p_ajustado)} | "

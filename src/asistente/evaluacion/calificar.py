@@ -253,4 +253,10 @@ def calificar(respuesta: str, pregunta: str, familia: str, criterio: str, refere
 
 
 def referencia_de(valor_jsonb) -> object:
-    return json.loads(valor_jsonb) if isinstance(valor_jsonb, str) else valor_jsonb
+    """psycopg ya entrega jsonb como objeto; un texto JSON también se acepta. «NO RESPONDIBLE» queda tal cual."""
+    if isinstance(valor_jsonb, str):
+        try:
+            return json.loads(valor_jsonb)
+        except json.JSONDecodeError:
+            return valor_jsonb
+    return valor_jsonb

@@ -79,7 +79,10 @@ def continuas(df: pd.DataFrame) -> pd.DataFrame:
         moda = t.round(1).mode()
         filas.append({"configuracion": c, "tiempo_media_s": t.mean(), "tiempo_mediana_s": t.median(),
                       "tiempo_moda_s": float(moda.iloc[0]) if len(moda) else np.nan, "tiempo_de_s": t.std(ddof=1),
-                      "tiempo_p90_s": t.quantile(0.9), "tokens_media": g.tokens.mean(),
+                      "tiempo_p90_s": t.quantile(0.9),
+                      "tiempo_neto_mediana_s": g.tiempo_neto_s.median() if "tiempo_neto_s" in g else np.nan,
+                      "reintentos_total": int(g.reintentos.sum()) if "reintentos" in g else 0,
+                      "tokens_media": g.tokens.mean(),
                       "costo_media_usd": g.costo_usd.mean(), "costo_total_usd": g.costo_usd.sum()})
     return pd.DataFrame(filas)
 

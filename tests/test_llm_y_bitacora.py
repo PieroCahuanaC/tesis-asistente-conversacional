@@ -78,3 +78,28 @@ def test_bitacora_registra_ejecucion_y_pasos():
         assert fila[0] == 1 and fila[1]
         conn.execute("DELETE FROM auditoria.bitacora WHERE id_ejecucion = %s", (id_ej,))
         conn.commit()
+
+
+def test_reintentos_del_proveedor_se_registran(monkeypatch):
+    import openai
+    try:
+        import httpx2 as httpx           # el SDK de openai 3.x usa httpx2
+    except ImportError:
+        import httpx
+
+    import asistente.llm.openai_compat as oc
+    monkeypatch.setattr(oc.time, "sleep", lambda s: None)
+    peticion = httpx.Request("POST", "https://x")
+    errores = [openai.APITimeoutError(request=peticion),
+               openai.RateLimitError("429", response=httpx.Response(429, request=peticion,
+                                                                     headers={"retry-after": "3"}), body=None)]
+
+    class Intermitente(ClienteFalso):
+        def _create(self, **kw):
+            if errores:
+                raise errores.pop(0)
+            return super()._create(**kw)
+
+    modelo = crear_modelo(cliente=Intermitente(_respuesta(content="ok")))
+    r = modelo.generar([{"role": "user", "content": "hola"}])
+    assert r.texto == "ok" and r.reintentos == 2 and r.tiempo_perdido_s >= 2 + 3

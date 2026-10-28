@@ -50,6 +50,8 @@ class Respuesta:
     costo_usd: float
     tiempo_s: float
     error: str | None = None
+    reintentos: int = 0
+    tiempo_perdido_s: float = 0.0
 
 
 def _leer_prompt(nombre: str) -> str:
@@ -125,7 +127,8 @@ def responder(pregunta: str, configuracion: str, modelo: ModeloLenguaje,
     mensajes = [{"role": "system", "content": sistema}, {"role": "user", "content": pregunta}]
 
     pasos: list[Paso] = []
-    tok_in = tok_out = 0
+    tok_in = tok_out = reintentos = 0
+    perdido = 0.0
     modelo_reportado = None
     texto, error = None, None
     inicio = time.perf_counter()
@@ -134,6 +137,8 @@ def responder(pregunta: str, configuracion: str, modelo: ModeloLenguaje,
             r = modelo.generar(mensajes, herramientas=tools)
             tok_in += r.tokens_entrada
             tok_out += r.tokens_salida
+            reintentos += getattr(r, "reintentos", 0)
+            perdido += getattr(r, "tiempo_perdido_s", 0.0)
             modelo_reportado = r.modelo_reportado or modelo_reportado
             if not r.llamadas:
                 texto = (r.texto or "").strip()
@@ -165,6 +170,8 @@ def responder(pregunta: str, configuracion: str, modelo: ModeloLenguaje,
             semilla=modelo.semilla, prompt_sha256=huella_prompt, id_pregunta=id_pregunta, repeticion=repeticion,
             pregunta=pregunta, respuesta=texto, abstencion=abstencion, tiempo_s=round(tiempo, 3),
             tokens_entrada=tok_in, tokens_salida=tok_out, costo_usd=costo, fecha_corte_datos=corte,
-            id_carga=id_carga, error=error, lote=lote, pasos=pasos))
+            id_carga=id_carga, error=error, lote=lote, reintentos=reintentos,
+            tiempo_perdido_s=round(perdido, 3), pasos=pasos))
     return Respuesta(texto=texto, abstencion=abstencion, id_ejecucion=id_ejecucion, pasos=pasos,
-                     tokens_entrada=tok_in, tokens_salida=tok_out, costo_usd=costo, tiempo_s=tiempo, error=error)
+                     tokens_entrada=tok_in, tokens_salida=tok_out, costo_usd=costo, tiempo_s=tiempo, error=error,
+                     reintentos=reintentos, tiempo_perdido_s=perdido)

@@ -102,7 +102,8 @@ def main() -> int:
                 costo += r.costo_usd
                 marca = "ABST" if r.abstencion else ("MAXPASOS" if r.error else "ok")
                 print(f"[{n}/{len(pendientes)}] {t.id_pregunta} {t.configuracion} r{t.repeticion}  {marca:8} "
-                      f"{r.tiempo_s:5.1f} s  {r.tokens_entrada + r.tokens_salida:6} tok  pasos {len(r.pasos)}")
+                      f"{r.tiempo_s:5.1f} s  {r.tokens_entrada + r.tokens_salida:6} tok  pasos {len(r.pasos)}"
+                      + (f"  (reintentos {r.reintentos}: {r.tiempo_perdido_s:.0f} s perdidos)" if r.reintentos else ""))
                 if args.pausa:
                     time.sleep(args.pausa)
         except KeyboardInterrupt:

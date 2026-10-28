@@ -30,6 +30,8 @@ class RespuestaLLM:
     tiempo_s: float = 0.0
     finalizacion: str | None = None
     mensaje_crudo: dict | None = None    # mensaje del asistente para reenviarlo en el historial
+    reintentos: int = 0                  # intentos fallidos del proveedor (límite, demora, red)
+    tiempo_perdido_s: float = 0.0        # tiempo de esos intentos y de las esperas entre ellos
 
 
 class ModeloLenguaje(Protocol):
@@ -74,6 +76,7 @@ def crear_modelo(cfg: dict | None = None, cliente=None) -> ModeloLenguaje:
         semilla=cfg.get("semilla"),
         esfuerzo_razonamiento=cfg.get("esfuerzo_razonamiento"),
         max_tokens_salida=cfg.get("max_tokens_salida", 1024),
+        timeout_s=cfg.get("timeout_s", 30),
         url_base=_URL_BASE[proveedor],
         clave=None if cliente else env(_VARIABLE_CLAVE[proveedor]),
         cliente=cliente,

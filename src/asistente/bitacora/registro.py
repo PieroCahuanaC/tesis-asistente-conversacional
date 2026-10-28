@@ -62,6 +62,8 @@ class Ejecucion:
     id_carga: int | None = None
     error: str | None = None
     lote: str | None = None
+    reintentos: int = 0
+    tiempo_perdido_s: float = 0.0
     pasos: list[Paso] = field(default_factory=list)
 
 
@@ -72,13 +74,13 @@ def registrar(conn: psycopg.Connection, e: Ejecucion) -> str:
                (usuario, configuracion, proveedor, modelo_version, modelo_reportado, temperatura,
                 semilla, prompt_sha256, id_pregunta, repeticion, pregunta, respuesta, abstencion,
                 tiempo_s, tokens_entrada, tokens_salida, costo_usd, fecha_corte_datos, id_carga,
-                commit_codigo, error, lote)
-               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                commit_codigo, error, lote, reintentos, tiempo_perdido_s)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                RETURNING id_ejecucion""",
             (e.usuario, e.configuracion, e.proveedor, e.modelo_version, e.modelo_reportado,
              e.temperatura, e.semilla, e.prompt_sha256, e.id_pregunta, e.repeticion, e.pregunta,
              e.respuesta, e.abstencion, e.tiempo_s, e.tokens_entrada, e.tokens_salida, e.costo_usd,
-             e.fecha_corte_datos, e.id_carga, commit_actual(), e.error, e.lote),
+             e.fecha_corte_datos, e.id_carga, commit_actual(), e.error, e.lote, e.reintentos, e.tiempo_perdido_s),
         ).fetchone()[0]
         with conn.cursor() as cur:
             cur.executemany(

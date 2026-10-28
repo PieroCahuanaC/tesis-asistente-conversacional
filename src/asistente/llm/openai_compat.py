@@ -10,17 +10,19 @@ from asistente.llm.base import LlamadaHerramienta, RespuestaLLM
 class ModeloOpenAICompatible:
     def __init__(self, proveedor: str, modelo: str, temperatura: float, semilla: int | None,
                  esfuerzo_razonamiento: str | None, max_tokens_salida: int,
-                 url_base: str | None, clave: str | None, cliente=None):
+                 url_base: str | None, clave: str | None, cliente=None, timeout_s: float = 30,
+                 max_reintentos: int = 5):
         self.proveedor = proveedor
         self.modelo = modelo
         self.temperatura = temperatura
         self.semilla = semilla
         self.esfuerzo_razonamiento = esfuerzo_razonamiento
         self.max_tokens_salida = max_tokens_salida
+        self.max_reintentos = max_reintentos
         if cliente is None:
             from openai import OpenAI
-            # max_retries reintenta con espera exponencial ante 429 (límites del nivel gratuito).
-            cliente = OpenAI(api_key=clave, base_url=url_base, max_retries=6, timeout=60)
+            # Los reintentos se hacen aquí (no en el SDK) para registrar cuántos hubo y cuánto tiempo costaron.
+            cliente = OpenAI(api_key=clave, base_url=url_base, max_retries=0, timeout=timeout_s)
         self._cliente = cliente
 
     def _parametros(self, mensajes: list[dict], herramientas: list[dict] | None) -> dict:
@@ -39,10 +41,28 @@ class ModeloOpenAICompatible:
             p["tool_choice"] = "auto"
         return p
 
+    def _crear(self, parametros: dict):
+        """Llama al proveedor; ante límite de solicitudes, demora o error temporal, espera y reintenta."""
+        import openai
+        transitorios = (openai.RateLimitError, openai.APITimeoutError, openai.APIConnectionError,
+                        openai.InternalServerError)
+        reintentos, perdido = 0, 0.0
+        while True:
+            inicio = time.perf_counter()
+            try:
+                r = self._cliente.chat.completions.create(**parametros)
+                return r, time.perf_counter() - inicio, reintentos, perdido
+            except transitorios as e:
+                perdido += time.perf_counter() - inicio
+                if reintentos >= self.max_reintentos:
+                    raise
+                espera = _espera_sugerida(e, reintentos)
+                time.sleep(espera)
+                perdido += espera
+                reintentos += 1
+
     def generar(self, mensajes: list[dict], herramientas: list[dict] | None = None) -> RespuestaLLM:
-        inicio = time.perf_counter()
-        r = self._cliente.chat.completions.create(**self._parametros(mensajes, herramientas))
-        tiempo = time.perf_counter() - inicio
+        r, tiempo, reintentos, perdido = self._crear(self._parametros(mensajes, herramientas))
         eleccion = r.choices[0]
         msg = eleccion.message
 
@@ -73,4 +93,15 @@ class ModeloOpenAICompatible:
             tiempo_s=tiempo,
             finalizacion=eleccion.finish_reason,
             mensaje_crudo=mensaje_crudo,
+            reintentos=reintentos,
+            tiempo_perdido_s=perdido,
         )
+
+
+def _espera_sugerida(error, intento: int) -> float:
+    """retry-after del proveedor si lo envía (máx. 60 s); si no, 2, 4, 8, 16, 20 s."""
+    try:
+        valor = float(error.response.headers.get("retry-after"))
+        return min(max(valor, 0.5), 60.0)
+    except Exception:
+        return float(min(2 ** (intento + 1), 20))
