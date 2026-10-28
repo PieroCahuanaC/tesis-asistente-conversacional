@@ -14,9 +14,8 @@ en la Municipalidad de Uchumayo, 2023-2025* (Arenas Ichocan y Cahuana Cabrera, U
 | Validador SQL de solo lectura (RNF-02) | listo, 100 % de ataques bloqueados |
 | Interfaz LLM independiente del proveedor + adaptador Groq/OpenAI | listo (sin llamadas reales aún) |
 | Bitácora (Ficha 4) | lista |
-| Herramienta C3 `agregar_ordenes` | lista |
 | Ingesta de la Consulta Amigable (MEF) y vista de saldo por finalidad y mes | listo |
-| Herramientas de saldo, ejecución, alertas y evaluación de requerimientos | siguiente |
+| Las 7 herramientas de C3 (Tabla 11), contrastadas con cálculos independientes | listas |
 | Configuraciones C1/C2/C3, ejecución por lotes, API, interfaz | S2-S4 |
 
 ## Estructura

@@ -1,9 +1,4 @@
-"""Registro de herramientas de C3: nombre -> (función, esquema JSON para el modelo).
-
-Las herramientas que dependen de la Consulta Amigable (buscar_meta, consultar_saldo,
-consultar_ejecucion, ranking_metas, alertas_ejecucion, evaluar_requerimiento) se agregan
-cuando se carguen los datos del MEF.
-"""
+"""Registro de herramientas de C3 (Tabla 11): nombre -> (función, esquema JSON para el modelo)."""
 from __future__ import annotations
 
 import time
@@ -11,10 +6,16 @@ import time
 import psycopg
 
 from asistente.bitacora.registro import Paso
-from asistente.herramientas import ordenes
+from asistente.herramientas import ordenes, presupuesto
 
 HERRAMIENTAS = {
+    "buscar_meta": (presupuesto.buscar_meta, presupuesto.ESQUEMAS["buscar_meta"]),
+    "consultar_saldo": (presupuesto.consultar_saldo, presupuesto.ESQUEMAS["consultar_saldo"]),
+    "consultar_ejecucion": (presupuesto.consultar_ejecucion, presupuesto.ESQUEMAS["consultar_ejecucion"]),
     "agregar_ordenes": (ordenes.agregar_ordenes, ordenes.ESQUEMA),
+    "ranking_metas": (presupuesto.ranking_metas, presupuesto.ESQUEMAS["ranking_metas"]),
+    "alertas_ejecucion": (presupuesto.alertas_ejecucion, presupuesto.ESQUEMAS["alertas_ejecucion"]),
+    "evaluar_requerimiento": (presupuesto.evaluar_requerimiento, presupuesto.ESQUEMAS["evaluar_requerimiento"]),
 }
 
 
