@@ -189,6 +189,10 @@ def calcular(f: Familia) -> list[list] | None:
         x = ea if col == "pim" else ea[ea.mes > 0]
         v1, v2 = x[x.fin == p["f1"]][col].sum(), x[x.fin == p["f2"]][col].sum()
         return [[p["f1"] if v1 >= v2 else p["f2"], _r(abs(v1 - v2))]]
+    if n == "max_monto_conteo":
+        x = oa[oa.estado != "anulada"]
+        tope = x.monto.max()
+        return [[_r(tope), int((x.monto == tope).sum())]]
     if n == "max_orden":
         x = oa[oa.estado != "anulada"].sort_values(["monto", "numero"], ascending=[False, True]).iloc[0]
         return [[int(x.numero), _r(x.monto)]]

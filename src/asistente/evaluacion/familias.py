@@ -49,6 +49,7 @@ INTERPRETACION = {
     "comp_tipo_monto": "Tipo de orden con mayor monto (sin anuladas) y diferencia en soles.",
     "comp_metas": "Finalidad con mayor valor y diferencia en soles.",
     "max_orden": "Orden ≤ 8 UIT no anulada de mayor monto del tipo y año: número y monto.",
+    "max_monto_conteo": "Monto más alto de una orden ≤ 8 UIT no anulada del tipo y año, y cuántas órdenes no anuladas tienen exactamente ese monto.",
     "contar_avance_mayor": "Número de finalidades con PIM > 0 cuyo avance (devengado acumulado / PIM × 100) supera el umbral al cierre del mes.",
     "contar_avance_menor": "Número de finalidades con PIM > 0 cuyo avance es menor que el umbral al cierre del mes.",
     "listar_avance_mayor": "Finalidades con PIM > 0 cuyo avance supera el umbral al cierre del mes.",
@@ -196,6 +197,8 @@ def clasificar(pregunta: str, tipo: str, criterio: str) -> Familia:
         medida = "pim" if "mayor pim" in n else "devengado"
         c = _codigos(n)
         return Familia("comp_metas", {"medida": medida, "anio": A[0], "f1": c[0], "f2": c[1]})
+    if "monto mas alto de una orden" in n:
+        return Familia("max_monto_conteo", {"tipo": _tipo(n), "anio": A[0]})
     if "de mayor monto en" in n:
         return Familia("max_orden", {"tipo": _tipo(n), "anio": A[0]})
 

@@ -21,7 +21,7 @@ COLUMNAS = {
     "var_total": ["diferencia", "porcentaje"], "mes_max_ordenes": ["mes", "conteo"], "mes_max_dev": ["mes", "monto"],
     "trim_max_dev": ["trimestre", "monto"], "comp_conteo_anios": ["anio", "diferencia"],
     "comp_tipo_monto": ["tipo", "diferencia"], "comp_metas": ["finalidad", "diferencia"],
-    "max_orden": ["numero", "monto"], "contar_avance_mayor": ["conteo"], "contar_avance_menor": ["conteo"],
+    "max_orden": ["numero", "monto"], "max_monto_conteo": ["monto", "conteo"], "contar_avance_mayor": ["conteo"], "contar_avance_menor": ["conteo"],
     "listar_avance_mayor": ["finalidad"], "listar_avance_menor": ["finalidad"],
     "avance_meta": ["porcentaje", "supera"], "alcanza": ["saldo", "diferencia", "resultado"],
 }
@@ -135,6 +135,9 @@ def sql(f: Familia) -> str | None:
         return (f"SELECT CASE WHEN v1 >= v2 THEN '{p['f1']}' ELSE '{p['f2']}' END, abs(v1 - v2) FROM (SELECT "
                 f"sum({col}) FILTER (WHERE finalidad = '{p['f1']}') AS v1, sum({col}) FILTER (WHERE finalidad = '{p['f2']}') AS v2 "
                 f"FROM {E} WHERE anio = {p['anio']}{filtro}) t")
+    if n == "max_monto_conteo":
+        return (f"SELECT monto_soles, count(*) FROM {O} WHERE incluida AND estado <> 'anulada' AND anio = {p['anio']}"
+                f"{_tipo(p)} GROUP BY monto_soles ORDER BY monto_soles DESC LIMIT 1")
     if n == "max_orden":
         return (f"SELECT numero_orden, monto_soles FROM {O} WHERE incluida AND estado <> 'anulada' AND anio = {p['anio']}"
                 f"{_tipo(p)} ORDER BY monto_soles DESC, numero_orden LIMIT 1")
