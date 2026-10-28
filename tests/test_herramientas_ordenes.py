@@ -19,6 +19,9 @@ from asistente.ingesta.pte import construir_ordenes  # noqa: E402
 @pytest.fixture(scope="module")
 def conn():
     with conectar_ro() as c:
+        if c.execute("SELECT count(*) FROM datos.orden").fetchone()[0] == 0:
+            pytest.fail("La base no tiene órdenes cargadas: ejecute "
+                        "'python scripts/cargar_pte.py --fecha-corte AAAA-MM-DD' antes de las pruebas")
         yield c
 
 

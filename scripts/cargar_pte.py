@@ -1,6 +1,6 @@
 """Etapa 1 (OE1): integra las órdenes del PTE y las carga en PostgreSQL.
 
-Uso:  python scripts/cargar_pte.py [--fecha-corte AAAA-MM-DD] [--sin-bd]
+Uso:  python scripts/cargar_pte.py --fecha-corte AAAA-MM-DD   (o --sin-bd para no cargar la base)
 
 Produce:
   data/interim/ordenes_pte.parquet   (no se versiona: contiene seudónimos)
@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -18,11 +19,23 @@ from asistente.config import RAIZ  # noqa: E402
 from asistente.ingesta.pte import construir_ordenes  # noqa: E402
 
 
+def _fecha(texto: str) -> date:
+    try:
+        return date.fromisoformat(texto)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"'{texto}' no es una fecha válida; use el formato AAAA-MM-DD, por ejemplo 2026-08-15") from None
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("--fecha-corte", help="Fecha de descarga de los archivos del PTE (AAAA-MM-DD)")
+    p.add_argument("--fecha-corte", type=_fecha,
+                   help="Fecha en que se descargaron los archivos del PTE (AAAA-MM-DD). "
+                        "Obligatoria al cargar la base: es la fecha de corte que cita cada respuesta (RF-14)")
     p.add_argument("--sin-bd", action="store_true", help="Solo genera los archivos, no carga PostgreSQL")
     args = p.parse_args()
+    if not args.sin_bd and args.fecha_corte is None:
+        p.error("falta --fecha-corte AAAA-MM-DD (fecha de descarga de los archivos del PTE)")
 
     r = construir_ordenes()
     (RAIZ / "data" / "interim").mkdir(parents=True, exist_ok=True)
