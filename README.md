@@ -18,7 +18,8 @@ en la Municipalidad de Uchumayo, 2023-2025* (Arenas Ichocan y Cahuana Cabrera, U
 | Las 7 herramientas de C3 (Tabla 11), contrastadas con cálculos independientes | listas |
 | Orquestador C1/C2/C3 (mismo bucle, prompts versionados en `prompts/`) y comando `scripts/preguntar.py` | listo |
 | Banco de 230 preguntas y solucionario por doble cálculo A (SQL) / B (Python sobre archivos): 207/207 coinciden | listo: falta la verificación manual del 20 % y el juicio de expertos |
-| Ejecución por lotes, calificación y estadística | siguiente |
+| Ejecución por lotes (`cargar_banco.py`, `ejecutar_lote.py`): piloto, principal y estabilidad, reanudable | listo |
+| Calificación automática y estadística | siguiente |
 | API (FastAPI), interfaz y panel (Streamlit), autenticación, Docker | S4 |
 
 ## Estructura
@@ -36,7 +37,8 @@ src/asistente/
   evaluacion/             criterio de corrección, familias de preguntas y doble cálculo del solucionario
 prompts/                  instrucciones de cada configuración (versionadas; su sha256 va a la bitácora)
 scripts/                  cargar_pte.py, filtrar_mef.py, cargar_mef.py, diagnostico_pte.py, preguntar.py,
-                          generar_banco.py, calcular_referencias.py
+                          generar_banco.py, calcular_referencias.py,
+                          cargar_banco.py, generar_ejemplos_c2.py, ejecutar_lote.py
 eval/banco/               banco de preguntas (Excel) con el solucionario
 reports/                  evidencia generada (tablas y figuras), versionada
 tests/                    pytest

@@ -23,6 +23,7 @@ from asistente.sql_guard.ejecutor import ejecutar
 
 CONFIGURACIONES = ("C1", "C2", "C3")
 MARCA_ABSTENCION = "[ABSTENCIÓN]"
+ERROR_MAX_PASOS = "Se alcanzó el máximo"   # fallo del asistente (cuenta como respuesta), no del proveedor
 DIR_PROMPTS = RAIZ / "prompts"
 
 ESQUEMA_SQL = {
@@ -116,7 +117,7 @@ def _ejecutar_paso(conn_ro: psycopg.Connection, configuracion: str, nombre: str,
 def responder(pregunta: str, configuracion: str, modelo: ModeloLenguaje,
               conn_admin: psycopg.Connection, conn_ro: psycopg.Connection,
               usuario: str = "cli", id_pregunta: str | None = None, repeticion: int | None = None,
-              registrar_bitacora: bool = True) -> Respuesta:
+              registrar_bitacora: bool = True, lote: str | None = None) -> Respuesta:
     cfg = ajustes()["llm"]
     max_pasos = int(cfg.get("max_pasos", 6))
     sistema, tools = construir_contexto(conn_admin, configuracion)
@@ -138,7 +139,7 @@ def responder(pregunta: str, configuracion: str, modelo: ModeloLenguaje,
                 texto = (r.texto or "").strip()
                 break
             if len(pasos) >= max_pasos:
-                error = f"Se alcanzó el máximo de {max_pasos} pasos sin respuesta final"
+                error = f"{ERROR_MAX_PASOS} de {max_pasos} pasos sin respuesta final"
                 break
             mensajes.append(r.mensaje_crudo)
             for llamada in r.llamadas:
@@ -164,6 +165,6 @@ def responder(pregunta: str, configuracion: str, modelo: ModeloLenguaje,
             semilla=modelo.semilla, prompt_sha256=huella_prompt, id_pregunta=id_pregunta, repeticion=repeticion,
             pregunta=pregunta, respuesta=texto, abstencion=abstencion, tiempo_s=round(tiempo, 3),
             tokens_entrada=tok_in, tokens_salida=tok_out, costo_usd=costo, fecha_corte_datos=corte,
-            id_carga=id_carga, error=error, pasos=pasos))
+            id_carga=id_carga, error=error, lote=lote, pasos=pasos))
     return Respuesta(texto=texto, abstencion=abstencion, id_ejecucion=id_ejecucion, pasos=pasos,
                      tokens_entrada=tok_in, tokens_salida=tok_out, costo_usd=costo, tiempo_s=tiempo, error=error)
