@@ -34,7 +34,7 @@ MAX_FALLAS_SEGUIDAS = 3
 
 def registrar_lote(admin, args, filas, modelo) -> None:
     h = huella_banco(filas)
-    previo = admin.execute("SELECT banco_sha256, modelo, configuraciones, repeticiones FROM eval.lote WHERE nombre = %s",
+    previo = admin.execute("SELECT banco_sha256, modelo, proveedor FROM eval.lote WHERE nombre = %s",
                            (args.lote,)).fetchone()
     if previo is None:
         admin.execute(
@@ -44,8 +44,8 @@ def registrar_lote(admin, args, filas, modelo) -> None:
              modelo.proveedor, modelo.semilla, commit_actual()))
         admin.commit()
         return
-    if previo[0] != h or previo[1] != modelo.modelo:
-        raise SystemExit(f"El lote «{args.lote}» se inició con otro banco o modelo ({previo[1]}). "
+    if previo[0] != h or previo[1] != modelo.modelo or previo[2] != modelo.proveedor:
+        raise SystemExit(f"El lote «{args.lote}» se inició con otro banco, modelo o proveedor ({previo[2]}/{previo[1]}). "
                          "Use otro nombre de lote para no mezclar resultados.")
 
 

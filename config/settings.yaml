@@ -20,8 +20,8 @@ tramo_sin_codigo_ni_estado:
 ruc_persona_natural: ["10", "15", "17"]
 
 llm:
-  proveedor: groq                 # groq | openai
-  modelo: openai/gpt-oss-120b
+  proveedor: groq                 # groq | cerebras | deepinfra | openai  (no cambiar entre lotes)
+  modelo: openai/gpt-oss-120b     # en cerebras el id es gpt-oss-120b
   temperatura: 0
   semilla: 20251231
   esfuerzo_razonamiento: low      # gpt-oss: low | medium | high

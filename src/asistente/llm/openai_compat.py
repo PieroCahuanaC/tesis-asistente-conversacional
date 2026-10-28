@@ -32,7 +32,7 @@ class ModeloOpenAICompatible:
         }
         if self.semilla is not None:
             p["seed"] = self.semilla
-        if self.esfuerzo_razonamiento and self.proveedor == "groq":
+        if self.esfuerzo_razonamiento and self.proveedor in ("groq", "cerebras", "deepinfra"):
             p["reasoning_effort"] = self.esfuerzo_razonamiento
         if herramientas:
             p["tools"] = herramientas

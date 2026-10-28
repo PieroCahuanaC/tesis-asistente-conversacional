@@ -50,9 +50,12 @@ def costo_usd(tokens_entrada: int, tokens_salida: int, cfg: dict | None = None) 
 
 _URL_BASE = {
     "groq": "https://api.groq.com/openai/v1",
+    "cerebras": "https://api.cerebras.ai/v1",
+    "deepinfra": "https://api.deepinfra.com/v1/openai",
     "openai": None,  # URL por defecto del SDK
 }
-_VARIABLE_CLAVE = {"groq": "GROQ_API_KEY", "openai": "OPENAI_API_KEY"}
+_VARIABLE_CLAVE = {"groq": "GROQ_API_KEY", "cerebras": "CEREBRAS_API_KEY", "deepinfra": "DEEPINFRA_API_KEY",
+                   "openai": "OPENAI_API_KEY"}
 
 
 def crear_modelo(cfg: dict | None = None, cliente=None) -> ModeloLenguaje:
