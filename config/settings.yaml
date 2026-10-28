@@ -25,7 +25,8 @@ llm:
   temperatura: 0
   semilla: 20251231
   esfuerzo_razonamiento: low      # gpt-oss: low | medium | high
-  max_tokens_salida: 1024
+  max_tokens_salida: 2048         # incluye los tokens de razonamiento
+  max_pasos: 6                    # llamadas a herramientas/SQL por pregunta (igual en C1, C2 y C3)
   # Precio de lista (US$ por millón de tokens) para el indicador de costo por consulta.
   # Fuente: https://console.groq.com/docs/models (consultado 2026-10-27).
   precio_entrada_usd_mtok: 0.15

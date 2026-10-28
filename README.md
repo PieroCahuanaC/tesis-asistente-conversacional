@@ -16,7 +16,9 @@ en la Municipalidad de Uchumayo, 2023-2025* (Arenas Ichocan y Cahuana Cabrera, U
 | Bitácora (Ficha 4) | lista |
 | Ingesta de la Consulta Amigable (MEF) y vista de saldo por finalidad y mes | listo |
 | Las 7 herramientas de C3 (Tabla 11), contrastadas con cálculos independientes | listas |
-| Configuraciones C1/C2/C3, ejecución por lotes, API, interfaz | S2-S4 |
+| Orquestador C1/C2/C3 (mismo bucle, prompts versionados en `prompts/`) y comando `scripts/preguntar.py` | listo |
+| Banco de preguntas, ejecución por lotes, calificación y estadística | siguiente |
+| API (FastAPI), interfaz y panel (Streamlit), autenticación, Docker | S4 |
 
 ## Estructura
 
@@ -30,7 +32,8 @@ src/asistente/
   llm/                    interfaz del modelo de lenguaje y adaptadores
   bitacora/               registro de cada ejecución (Ficha 4)
   herramientas/           herramientas de consulta de C3 (Tabla 11)
-scripts/                  cargar_pte.py, diagnostico_pte.py
+prompts/                  instrucciones de cada configuración (versionadas; su sha256 va a la bitácora)
+scripts/                  cargar_pte.py, filtrar_mef.py, cargar_mef.py, diagnostico_pte.py, preguntar.py
 reports/                  evidencia generada (tablas y figuras), versionada
 tests/                    pytest
 data/raw/pte/AAAA/        archivos originales del PTE (no se versionan)
