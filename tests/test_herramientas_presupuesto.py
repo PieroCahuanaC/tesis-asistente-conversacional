@@ -132,3 +132,29 @@ def test_registro_completo():
                                  "ranking_metas", "alertas_ejecucion", "evaluar_requerimiento"}
     for nombre, (_, esquema) in HERRAMIENTAS.items():
         assert esquema["function"]["name"] == nombre
+
+
+# ---- parámetros agregados tras el piloto (D32), contrastados con el cálculo B (archivos originales)
+@pytest.mark.datos
+def test_ranking_por_saldo_y_alertas_por_debajo_coinciden_con_calculo_b(conn):
+    from asistente.evaluacion import calculo_b as B
+    from asistente.evaluacion.familias import Familia
+    from asistente.herramientas.presupuesto import alertas_ejecucion, ranking_metas
+    r = ranking_metas(conn, anio=2024, criterio="saldo", n=3, mes=6)
+    esperado = B.calcular(Familia("top_saldo", {"anio": 2024, "mes": 6, "n": 3}))
+    assert [(x["codigo_finalidad"], x["valor"]) for x in r["ranking"]] == [(f, pytest.approx(v, abs=0.01)) for f, v in esperado]
+    a = alertas_ejecucion(conn, periodo="2025-09", umbral_pct=30, condicion="menor")
+    assert a["cantidad"] == B.calcular(Familia("contar_avance_menor", {"anio": 2025, "mes": 9, "umbral": 30}))[0][0]
+    assert all(m["avance_pct"] < 30 for m in a["metas"])
+    assert alertas_ejecucion(conn, periodo="2025-09", umbral_pct=30, condicion="otra")["disponible"] is False
+
+
+@pytest.mark.datos
+def test_pim_anual_total_municipal(conn):
+    from asistente.evaluacion import calculo_b as B
+    from asistente.evaluacion.familias import Familia
+    from asistente.herramientas.presupuesto import consultar_ejecucion
+    p24 = consultar_ejecucion(conn, desde="2024-01", hasta="2024-12")["pim_anual"]["2024"]
+    p25 = consultar_ejecucion(conn, desde="2025-01", hasta="2025-12")["pim_anual"]["2025"]
+    dif = B.calcular(Familia("var_total", {"a1": 2024, "a2": 2025, "medida": "pim"}))[0][0]
+    assert p25 - p24 == pytest.approx(dif, abs=0.01)

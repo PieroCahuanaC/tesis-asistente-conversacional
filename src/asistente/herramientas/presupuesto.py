@@ -134,6 +134,12 @@ def consultar_ejecucion(conn: psycopg.Connection, desde: str, hasta: str,
                  "certificado": soles(fila[1]), "comprometido": soles(fila[2]),
                  "devengado": soles(fila[3]), "girado": soles(fila[4]),
                  "fuente": FUENTE_MEF, "fecha_corte": fecha_corte(conn, "MEF")}
+    # PIM (monto anual, D13) de cada año del rango, de la meta o de toda la municipalidad.
+    pims = leer(conn, f"""
+        SELECT anio, coalesce(sum(pim), 0) FROM datos.ejecucion_presupuestal
+        WHERE anio BETWEEN %(a1)s AND %(a2)s {filtro} GROUP BY anio ORDER BY anio""",
+                p | {"a1": int(desde[:4]), "a2": int(hasta[:4])})
+    resultado["pim_anual"] = {str(a): soles(v) for a, v in pims}
     if codigo_finalidad:
         nombre = leer(conn, "SELECT max(nombre_meta) FROM datos.ejecucion_presupuestal WHERE finalidad = %s",
                       (codigo_finalidad,))[0][0]
@@ -163,17 +169,21 @@ CRITERIOS = {
     "pim": "Presupuesto institucional modificado",
     "avance": "Porcentaje de avance del devengado respecto del PIM",
     "monto_ordenes": "Monto de las órdenes <= 8 UIT emitidas (sin anuladas)",
+    "saldo": "Saldo sin certificar (PIM menos certificación acumulada) al cierre del mes",
 }
 
 
 @_envolver
-def ranking_metas(conn: psycopg.Connection, anio: int, criterio: str = "devengado", n: int = 5) -> dict:
+def ranking_metas(conn: psycopg.Connection, anio: int, criterio: str = "devengado", n: int = 5,
+                  mes: int = 12) -> dict:
     if anio not in (2023, 2024, 2025):
         raise NoDisponible("Solo hay datos de 2023, 2024 y 2025")
     if criterio not in CRITERIOS:
         raise NoDisponible(f"Criterio no válido; use uno de {sorted(CRITERIOS)}")
     if not isinstance(n, int) or not 1 <= n <= 20:
         raise NoDisponible("n debe estar entre 1 y 20")
+    if not isinstance(mes, int) or not 1 <= mes <= 12:
+        raise NoDisponible("mes debe estar entre 1 y 12")
     if criterio == "monto_ordenes":
         tramo = meses_en_tramo(f"{anio}-01", f"{anio}-12")
         if tramo:
@@ -186,13 +196,14 @@ def ranking_metas(conn: psycopg.Connection, anio: int, criterio: str = "devengad
             GROUP BY 1, 2 ORDER BY valor DESC, 1 LIMIT %s""", (anio, n))
     else:
         columna = {"devengado": "devengado_acum", "certificado": "certificado_acum", "pim": "pim",
-                   "avance": "avance_devengado_pct"}[criterio]
+                   "avance": "avance_devengado_pct", "saldo": "saldo"}[criterio]
         extra = "AND pim > 0" if criterio == "avance" else ""
         filas = leer(conn, f"""
             SELECT finalidad, nombre_meta, {columna} AS valor FROM datos.v_finalidad_mes
-            WHERE anio = %s AND mes = 12 {extra} AND {columna} IS NOT NULL
-            ORDER BY valor DESC, finalidad LIMIT %s""", (anio, n))
+            WHERE anio = %s AND mes = %s {extra} AND {columna} IS NOT NULL
+            ORDER BY valor DESC, finalidad LIMIT %s""", (anio, mes, n))
     return {"disponible": True, "anio": anio, "criterio": criterio, "descripcion_criterio": CRITERIOS[criterio],
+            "al_cierre_de": None if criterio in ("pim", "monto_ordenes") else f"{anio}-{mes:02d}",
             "ranking": [{"posicion": i, "codigo_finalidad": f, "nombre": nom,
                          "valor": float(v) if criterio == "avance" else soles(v)}
                         for i, (f, nom, v) in enumerate(filas, start=1)],
@@ -202,7 +213,7 @@ def ranking_metas(conn: psycopg.Connection, anio: int, criterio: str = "devengad
 
 # ---------------------------------------------------------------- alertas_ejecucion
 @_envolver
-def alertas_ejecucion(conn: psycopg.Connection, periodo: str, umbral_pct: float = 80) -> dict:
+def alertas_ejecucion(conn: psycopg.Connection, periodo: str, umbral_pct: float = 80, condicion: str = "mayor") -> dict:
     validar_periodo(periodo)
     try:
         umbral_pct = float(umbral_pct)
@@ -210,13 +221,16 @@ def alertas_ejecucion(conn: psycopg.Connection, periodo: str, umbral_pct: float 
         raise NoDisponible("El umbral debe ser un porcentaje numérico") from None
     if not 0 < umbral_pct <= 100:
         raise NoDisponible("El umbral debe estar entre 0 y 100 %")
+    if condicion not in ("mayor", "menor"):
+        raise NoDisponible("condicion debe ser 'mayor' o 'menor'")
     anio, mes = map(int, periodo.split("-"))
-    filas = leer(conn, """
+    op, orden = (">", "DESC") if condicion == "mayor" else ("<", "ASC")
+    filas = leer(conn, f"""
         SELECT finalidad, nombre_meta, pim, devengado_acum, avance_devengado_pct
         FROM datos.v_finalidad_mes
-        WHERE anio = %s AND mes = %s AND pim > 0 AND avance_devengado_pct > %s
-        ORDER BY avance_devengado_pct DESC, finalidad""", (anio, mes, umbral_pct))
-    return {"disponible": True, "periodo": periodo, "umbral_pct": umbral_pct,
+        WHERE anio = %s AND mes = %s AND pim > 0 AND avance_devengado_pct {op} %s
+        ORDER BY avance_devengado_pct {orden}, finalidad""", (anio, mes, umbral_pct))
+    return {"disponible": True, "periodo": periodo, "umbral_pct": umbral_pct, "condicion": f"avance {condicion} que el umbral",
             "indicador": "devengado acumulado / PIM", "cantidad": len(filas),
             "metas": [{"codigo_finalidad": f, "nombre": n, "pim": soles(p), "devengado_acumulado": soles(d),
                        "avance_pct": float(a)} for f, n, p, d, a in filas],
@@ -250,19 +264,25 @@ ESQUEMAS = {
     "consultar_ejecucion": _esquema(
         "consultar_ejecucion",
         "Suma la certificación, el compromiso, el devengado y el girado registrados en un rango de meses, "
-        "para una meta o para toda la municipalidad, y el monto de las órdenes <= 8 UIT del mismo rango.",
+        "para una meta o para toda la municipalidad (sin código), el PIM anual de cada año del rango y el monto "
+        "de las órdenes <= 8 UIT del mismo rango.",
         {"desde": _PER, "hasta": _PER, "codigo_finalidad": _FIN}, ["desde", "hasta"]),
     "ranking_metas": _esquema(
         "ranking_metas",
-        "Ordena las metas de un año de mayor a menor según un criterio y devuelve las n primeras.",
+        "Ordena las metas de un año de mayor a menor según un criterio y devuelve las n primeras. Los montos "
+        "acumulados, el avance y el saldo se calculan al cierre del mes indicado (por defecto, diciembre).",
         {"anio": {"type": "integer", "enum": [2023, 2024, 2025]},
          "criterio": {"type": "string", "enum": sorted(CRITERIOS), "description": "; ".join(f"{k}: {v}" for k, v in CRITERIOS.items())},
-         "n": {"type": "integer", "minimum": 1, "maximum": 20}},
+         "n": {"type": "integer", "minimum": 1, "maximum": 20},
+         "mes": {"type": "integer", "minimum": 1, "maximum": 12, "description": "Mes de cierre (1-12); por defecto 12"}},
         ["anio", "criterio"]),
     "alertas_ejecucion": _esquema(
         "alertas_ejecucion",
-        "Lista las metas cuyo devengado acumulado al cierre de un mes supera un porcentaje de su PIM.",
-        {"periodo": _PER, "umbral_pct": {"type": "number", "description": "Porcentaje, p. ej. 80"}},
+        "Lista y cuenta las metas cuyo avance (devengado acumulado / PIM) al cierre de un mes es mayor o menor que "
+        "un porcentaje.",
+        {"periodo": _PER, "umbral_pct": {"type": "number", "description": "Porcentaje, p. ej. 80"},
+         "condicion": {"type": "string", "enum": ["mayor", "menor"],
+                       "description": "mayor: avance por encima del umbral (por defecto); menor: por debajo"}},
         ["periodo"]),
     "evaluar_requerimiento": _esquema(
         "evaluar_requerimiento",
