@@ -1,5 +1,19 @@
-# Despliegue local (RNF-10). En S1-S3 solo se levanta la base de datos;
-# la API (puerto 8000) y la interfaz Streamlit (puerto 8501) se agregan en S4.
+# Despliegue local (RNF-10): base de datos, API (http://localhost:8000/docs) e interfaz (http://localhost:8501).
+#   docker compose up -d --build
+# Las variables (claves, API_SECRETO, clave del LLM) se leen del archivo .env, que no se versiona (RNF-06).
+x-app: &app
+  build: .
+  env_file: .env
+  environment:
+    DATABASE_URL_ADMIN: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/uchumayo
+    DATABASE_URL_RO: postgresql://asistente_ro:${ASISTENTE_RO_PASSWORD}@db:5432/uchumayo
+  volumes:
+    - ./data:/app/data          # archivos del PTE y del MEF para la carga (no van dentro de la imagen)
+    - ./reports:/app/reports
+  depends_on:
+    db:
+      condition: service_healthy
+
 services:
   db:
     image: postgres:16.6
@@ -16,6 +30,25 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres -d uchumayo"]
       interval: 5s
       retries: 10
+
+  api:
+    <<: *app
+    container_name: uchumayo-api
+    command: sh -c "python -m asistente.db.migrar && uvicorn asistente.api.app:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+
+  ui:
+    <<: *app
+    container_name: uchumayo-ui
+    working_dir: /app/ui
+    command: streamlit run app.py --server.address 0.0.0.0 --server.port 8501
+    environment:
+      API_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
 
 volumes:
   pgdata:

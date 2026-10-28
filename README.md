@@ -20,7 +20,7 @@ en la Municipalidad de Uchumayo, 2023-2025* (Arenas Ichocan y Cahuana Cabrera, U
 | Banco de 230 preguntas y solucionario por doble cálculo A (SQL) / B (Python sobre archivos): 207/207 coinciden | listo: falta la verificación manual del 20 % y el juicio de expertos |
 | Ejecución por lotes (`cargar_banco.py`, `ejecutar_lote.py`): piloto, principal y estabilidad, reanudable | listo |
 | Calificación automática (`calificar_lote.py`) y estadística de 3.6 con figuras (`analizar_lote.py`) | listo; falta calibrar con el piloto |
-| API, chat, panel, autenticación y Docker (S4) | siguiente |
+| API (FastAPI), interfaz Streamlit (consulta, evaluación, panel, bitácora), usuarios por perfil y Docker (S4) | listo |
 
 ## Estructura
 
@@ -34,7 +34,9 @@ src/asistente/
   llm/                    interfaz del modelo de lenguaje y adaptadores
   bitacora/               registro de cada ejecución (Ficha 4)
   herramientas/           herramientas de consulta de C3 (Tabla 11)
+  api/                    API FastAPI: autenticación por perfil, consultas, panel, bitácora
   evaluacion/             criterio de corrección, familias de preguntas y doble cálculo del solucionario
+ui/                       interfaz Streamlit (solo habla con la API)
 prompts/                  instrucciones de cada configuración (versionadas; su sha256 va a la bitácora)
 scripts/                  cargar_pte.py, filtrar_mef.py, cargar_mef.py, diagnostico_pte.py, preguntar.py,
                           generar_banco.py, calcular_referencias.py,
@@ -75,6 +77,26 @@ data/manifest_mef.csv     sha256 de cada CSV original del MEF (sí se versiona)
    python scripts/diagnostico_pte.py
    pytest
    ```
+
+## Usar el asistente (S4)
+
+Sin Docker (dos terminales, con el venv activo y `API_SECRETO` en el `.env`):
+```powershell
+python scripts/crear_usuario.py --usuario pcahuana --nombre "Piero Cahuana" --perfil administrador
+uvicorn asistente.api.app:app --port 8000          # terminal 1 (documentación en http://localhost:8000/docs)
+streamlit run ui/app.py                            # terminal 2 -> http://localhost:8501
+```
+
+Con Docker (RNF-10), en un equipo nuevo:
+```powershell
+docker compose up -d --build
+docker compose run --rm api python scripts/cargar_pte.py --fecha-corte AAAA-MM-DD
+docker compose run --rm api python scripts/cargar_mef.py --fecha-corte AAAA-MM-DD
+docker compose run --rm api python scripts/crear_usuario.py --usuario admin --nombre "Administrador" --perfil administrador
+```
+
+Perfiles (RF-18): **jefatura** (consulta, evaluación y panel), **area_usuaria** (consulta y evaluación),
+**administrador** (todo, además elegir C1/C2/C3 y ver la bitácora completa).
 
 Las pruebas marcadas `db` se omiten si no hay PostgreSQL configurado; las marcadas `datos`, si
 faltan los archivos del PTE.

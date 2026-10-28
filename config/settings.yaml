@@ -45,3 +45,6 @@ mef:
     2023: data/raw/mef/filtrado/2023-Gasto_UCHUMAYO.csv
     2024: data/raw/mef/filtrado/2024-Gasto_UCHUMAYO.csv
     2025: data/raw/mef/filtrado/2025-Gasto-Mensual_UCHUMAYO.csv
+
+api:
+  configuracion_por_defecto: C3     # la que usan jefaturas y áreas usuarias; el administrador puede elegir C1/C2
