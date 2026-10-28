@@ -21,3 +21,11 @@ venv/
 .DS_Store
 Thumbs.db
 ~$*
+
+# Herramientas y editores
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.vscode/
+.idea/
