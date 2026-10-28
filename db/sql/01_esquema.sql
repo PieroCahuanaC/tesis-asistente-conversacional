@@ -9,6 +9,11 @@ CREATE SCHEMA IF NOT EXISTS datos;
 CREATE SCHEMA IF NOT EXISTS eval;
 CREATE SCHEMA IF NOT EXISTS auditoria;
 
+CREATE TABLE IF NOT EXISTS auditoria.migracion (
+    nombre    text PRIMARY KEY,
+    aplicada  timestamptz NOT NULL DEFAULT now()
+);
+
 -- ---------------------------------------------------------------- datos
 CREATE TABLE IF NOT EXISTS datos.carga (
     id_carga        serial PRIMARY KEY,
@@ -73,27 +78,7 @@ COMMENT ON COLUMN datos.orden.incluida IS 'TRUE si la orden es <= 8 UIT y no der
 COMMENT ON COLUMN datos.orden.estado_confiable IS 'FALSE entre ago-2024 y mar-2025: el portal no publica el estado real ni el código de finalidad';
 COMMENT ON COLUMN datos.orden.monto_soles IS 'Monto de la orden en soles; las anuladas no cuentan como gasto';
 
--- Ficha 2. Estructura preliminar: se ajusta cuando lleguen los CSV de la Consulta Amigable.
-CREATE TABLE IF NOT EXISTS datos.ejecucion_presupuestal (
-    id                  bigserial PRIMARY KEY,
-    anio                smallint NOT NULL,
-    mes                 smallint NOT NULL CHECK (mes BETWEEN 1 AND 12),
-    codigo_finalidad    char(7) NOT NULL,
-    sec_func            text,                 -- número de meta (secuencia funcional) del año
-    nombre_meta         text,
-    clasificador_gasto  text,
-    nivel_desagregacion text,
-    pia                 numeric(16,2),
-    pim                 numeric(16,2),
-    certificacion       numeric(16,2),
-    compromiso          numeric(16,2),
-    devengado           numeric(16,2),
-    saldo               numeric(16,2) GENERATED ALWAYS AS (pim - certificacion) STORED,
-    id_carga            integer NOT NULL REFERENCES datos.carga
-);
-CREATE INDEX IF NOT EXISTS ejecucion_finalidad_idx ON datos.ejecucion_presupuestal (codigo_finalidad, anio, mes);
-COMMENT ON TABLE datos.ejecucion_presupuestal IS 'Ejecución presupuestal de la Consulta Amigable del MEF por meta, mes y clasificador';
-COMMENT ON COLUMN datos.ejecucion_presupuestal.saldo IS 'Saldo disponible = PIM - certificación';
+-- Ficha 2 (datos.ejecucion_presupuestal) se crea en db/sql/migraciones/001_ejecucion_v2.sql
 
 -- ---------------------------------------------------------------- eval
 CREATE TABLE IF NOT EXISTS eval.pregunta (

@@ -35,3 +35,11 @@ sql:
   timeout_ms: 5000
   max_filas: 500
   esquemas_permitidos: ["datos"]
+
+mef:
+  # Unidad ejecutora de la Municipalidad Distrital de Uchumayo en el SIAF (columna SEC_EJEC).
+  sec_ejec: "300354"
+  archivos:              # CSV de datos abiertos del MEF ya filtrados (scripts/filtrar_mef.py)
+    2023: data/raw/mef/filtrado/2023-Gasto_UCHUMAYO.csv
+    2024: data/raw/mef/filtrado/2024-Gasto_UCHUMAYO.csv
+    2025: data/raw/mef/filtrado/2025-Gasto-Mensual_UCHUMAYO.csv

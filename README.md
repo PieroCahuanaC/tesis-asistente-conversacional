@@ -15,7 +15,8 @@ en la Municipalidad de Uchumayo, 2023-2025* (Arenas Ichocan y Cahuana Cabrera, U
 | Interfaz LLM independiente del proveedor + adaptador Groq/OpenAI | listo (sin llamadas reales aún) |
 | Bitácora (Ficha 4) | lista |
 | Herramienta C3 `agregar_ordenes` | lista |
-| Ingesta de la Consulta Amigable (MEF) y herramientas de saldo/ejecución | pendiente de los datos |
+| Ingesta de la Consulta Amigable (MEF) y vista de saldo por finalidad y mes | listo |
+| Herramientas de saldo, ejecución, alertas y evaluación de requerimientos | siguiente |
 | Configuraciones C1/C2/C3, ejecución por lotes, API, interfaz | S2-S4 |
 
 ## Estructura
@@ -34,7 +35,9 @@ scripts/                  cargar_pte.py, diagnostico_pte.py
 reports/                  evidencia generada (tablas y figuras), versionada
 tests/                    pytest
 data/raw/pte/AAAA/        archivos originales del PTE (no se versionan)
-data/manifest_pte.csv     sha256 de cada archivo original (sí se versiona)
+data/manifest_pte.csv     sha256 de cada archivo original del PTE (sí se versiona)
+data/raw/mef/             CSV del MEF y sus versiones filtradas (no se versionan)
+data/manifest_mef.csv     sha256 de cada CSV original del MEF (sí se versiona)
 ```
 
 ## Instalación (Windows)
@@ -59,6 +62,8 @@ data/manifest_pte.csv     sha256 de cada archivo original (sí se versiona)
    ```powershell
    python -m asistente.db.migrar
    python scripts/cargar_pte.py --fecha-corte AAAA-MM-DD   # fecha en que se descargaron los .xls
+   python scripts/filtrar_mef.py                          # una vez: reduce los CSV nacionales del MEF a Uchumayo
+   python scripts/cargar_mef.py --fecha-corte AAAA-MM-DD   # fecha de descarga de los CSV del MEF
    python scripts/diagnostico_pte.py
    pytest
    ```

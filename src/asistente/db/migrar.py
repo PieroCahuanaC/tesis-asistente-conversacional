@@ -36,6 +36,17 @@ def migrar() -> None:
     with psycopg.connect(url_admin, autocommit=True) as c:
         c.execute((DIR_SQL / "01_esquema.sql").read_text(encoding="utf-8"))
 
+        # Migraciones versionadas: cada archivo se aplica una sola vez (auditoria.migracion).
+        aplicadas = {f[0] for f in c.execute("SELECT nombre FROM auditoria.migracion").fetchall()}
+        for archivo in sorted((DIR_SQL / "migraciones").glob("*.sql")):
+            if archivo.name not in aplicadas:
+                with c.transaction():
+                    c.execute(archivo.read_text(encoding="utf-8"))
+                    c.execute("INSERT INTO auditoria.migracion (nombre) VALUES (%s)", (archivo.name,))
+                print(f"Migración aplicada: {archivo.name}")
+
+        c.execute((DIR_SQL / "03_vistas.sql").read_text(encoding="utf-8"))
+
         existe = c.execute("SELECT 1 FROM pg_roles WHERE rolname = 'asistente_ro'").fetchone()
         verbo = "ALTER" if existe else "CREATE"
         c.execute(sql.SQL(verbo + " ROLE asistente_ro LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE "
