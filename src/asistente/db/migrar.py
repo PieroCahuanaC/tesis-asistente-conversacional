@@ -23,7 +23,9 @@ def crear_base_si_falta(url_admin: str) -> None:
     with psycopg.connect(make_conninfo(url_admin, dbname="postgres"), autocommit=True) as c:
         existe = c.execute("SELECT 1 FROM pg_database WHERE datname = %s", (nombre,)).fetchone()
         if not existe:
-            c.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(nombre)))
+            # UTF8 explícito: en Windows la plantilla por defecto puede venir en WIN1252.
+            c.execute(sql.SQL("CREATE DATABASE {} WITH ENCODING 'UTF8' TEMPLATE template0")
+                      .format(sql.Identifier(nombre)))
             print(f"Base de datos '{nombre}' creada")
 
 
