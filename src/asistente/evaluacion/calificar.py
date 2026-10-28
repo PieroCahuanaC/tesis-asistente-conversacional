@@ -121,7 +121,7 @@ def _coincide(ref: float, valores: set[float], clase: str) -> bool:
 def _contiene_texto(col: str, ref, texto_n: str, familia: str) -> bool:
     r = normalizar(str(ref))
     if col == "resultado":
-        negativo = bool(re.search(r"\bno (le )?(alcanza|cubre|es suficiente)|\binsuficiente|\bfaltar[ií]an?\b|\bfaltan\b"
+        negativo = bool(re.search(r"^\W*no\b|\bno (le )?(alcanza|cubre|es suficiente)|\binsuficiente|\bfaltar[ií]an?\b|\bfaltan?\b"
                                   r"|\b(supera|excede|sobrepasa) (el|al|su) saldo|\bsaldo (es )?(insuficiente|menor)|\bdeficit", texto_n))
         positivo = bool(re.search(r"\balcanza|\bsuficiente|\bsobrar|\bcubre|\bsi,? (le )?(alcanza|cubre|es suficiente)|\bdisponible para", texto_n))
         return negativo if r == "no alcanza" else (not negativo and positivo)

@@ -101,3 +101,10 @@ def test_alcanza_con_otras_palabras():
               [[482457.0, 437457.0, "alcanza"]]).correcta
     assert _c("El saldo es S/ 9 502,35. La solicitud supera el saldo en S/ 10 497,65.", "alcanza",
               [[9502.35, -10497.65, "no alcanza"]]).correcta
+
+
+def test_no_alcanza_con_falta_singular():
+    ref = [[14352.52, -5647.48, "no alcanza"]]
+    assert _c("Saldo al cierre de octubre: S/ 14 352,52.\nPetición de S/ 20 000,00 → falta S/ 5 647,48.", "alcanza", ref).correcta
+    assert _c("No, el saldo disponible es S/ 14 352,52.", "alcanza", ref).correcta
+    assert not _c("Sí alcanza: saldo S/ 14 352,52.", "alcanza", ref).correcta
