@@ -1,0 +1,21 @@
+# Despliegue local (RNF-10). En S1-S3 solo se levanta la base de datos;
+# la API (puerto 8000) y la interfaz Streamlit (puerto 8501) se agregan en S4.
+services:
+  db:
+    image: postgres:16.6
+    container_name: uchumayo-db
+    environment:
+      POSTGRES_DB: uchumayo
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d uchumayo"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:

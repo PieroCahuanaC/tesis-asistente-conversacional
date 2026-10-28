@@ -1,0 +1,26 @@
+{
+  "generado": "2026-10-27T23:47:37",
+  "commit": "sin-git",
+  "archivos": 36,
+  "archivos_regrabados_en_excel": [
+    "PTE_2023_01_ENERO.xls",
+    "PTE_2023_02_FEBRERO.xls",
+    "PTE_2023_09_SETIEMBRE.xls",
+    "PTE_2023_12_DICIEMBRE.xls"
+  ],
+  "ordenes_publicadas": 10624,
+  "derivan_de_seleccion": 112,
+  "ordenes_incluidas": 10512,
+  "ordenes_incluidas_sin_anuladas": 10467,
+  "pct_con_codigo_incluidas": 79.23,
+  "codigos_finalidad_distintos_incluidas": 216,
+  "pct_persona_natural_incluidas": 72.44,
+  "tramo_sin_codigo_ni_estado": {
+    "desde": "2024-08",
+    "hasta": "2025-03"
+  },
+  "diferencia_perfiles_mensuales_2023_2024_pp": 3.68,
+  "advertencias": [
+    "2 órdenes incluidas sin código fuera del tramo R-05: 2024-OC-00001, 2024-OC-00002"
+  ]
+}

@@ -1,0 +1,37 @@
+# Parámetros del estudio. Todo valor que afecte un resultado vive aquí y queda versionado.
+
+uit:            # Valor de la UIT por año (S/). Tope de inclusión = 8 UIT.
+  2023: 4950
+  2024: 5150
+  2025: 5350
+
+periodo:
+  desde: "2023-01"
+  hasta: "2025-12"
+
+# Tramo en que el PTE no publica el código de finalidad ni el estado real de la orden
+# (diagnóstico S1). Restricción R-05.
+tramo_sin_codigo_ni_estado:
+  desde: "2024-08"
+  hasta: "2025-03"
+
+# Prefijos de RUC que corresponden a personas naturales (se seudonimizan, RNF-07).
+# 10 = persona natural con DNI; 15 y 17 = personas naturales con otro documento.
+ruc_persona_natural: ["10", "15", "17"]
+
+llm:
+  proveedor: groq                 # groq | openai
+  modelo: openai/gpt-oss-120b
+  temperatura: 0
+  semilla: 20251231
+  esfuerzo_razonamiento: low      # gpt-oss: low | medium | high
+  max_tokens_salida: 1024
+  # Precio de lista (US$ por millón de tokens) para el indicador de costo por consulta.
+  # Fuente: https://console.groq.com/docs/models (consultado 2026-10-27).
+  precio_entrada_usd_mtok: 0.15
+  precio_salida_usd_mtok: 0.60
+
+sql:
+  timeout_ms: 5000
+  max_filas: 500
+  esquemas_permitidos: ["datos"]

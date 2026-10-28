@@ -1,0 +1,8 @@
+paso,ordenes
+Filas leídas de los archivos,10624
+"Sin duplicados (tipo, número, año)",10624
+Excluidas: derivan de procedimiento de selección,-112
+Excluidas: superan 8 UIT (sin marca de selección),0
+Órdenes incluidas (<= 8 UIT),10512
+"De ellas, anuladas (identificables)",45
+Órdenes incluidas sin anuladas,10467

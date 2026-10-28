@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asistente-presupuestal-uchumayo"
+version = "0.1.0"
+description = "Asistente conversacional con LLM para la consulta presupuestal de contrataciones <= 8 UIT (Municipalidad Distrital de Uchumayo, 2023-2025)"
+authors = [
+  { name = "Rodrigo Mijael Arenas Ichocan" },
+  { name = "Piero Anthony Cahuana Cabrera" },
+]
+requires-python = ">=3.11"
+# Versiones exactas en requirements.lock (reproducibilidad, RNF-11).
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+  "db: requiere PostgreSQL (variable DATABASE_URL_ADMIN)",
+  "datos: requiere los archivos originales del PTE en data/raw/pte",
+]
