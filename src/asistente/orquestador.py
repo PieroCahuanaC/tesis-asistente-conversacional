@@ -62,7 +62,7 @@ def describir_esquema(conn: psycopg.Connection, con_descripciones: bool) -> str:
                a.attname, format_type(a.atttypid, a.atttypmod), col_description(c.oid, a.attnum)
         FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
         JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
-        WHERE n.nspname = 'datos' AND c.relkind IN ('r', 'v')
+        WHERE n.nspname = 'datos' AND c.relkind IN ('r', 'v', 'm')
         ORDER BY c.relname, a.attnum""").fetchall()
     tablas: dict[str, list] = {}
     comentarios: dict[str, str | None] = {}

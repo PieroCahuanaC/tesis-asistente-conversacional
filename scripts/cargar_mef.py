@@ -72,6 +72,7 @@ def main() -> None:
             )
         conn.execute("UPDATE datos.finalidad SET en_mef = FALSE WHERE codigo_finalidad NOT IN "
                      "(SELECT DISTINCT finalidad FROM datos.ejecucion_presupuestal)")
+        conn.execute("REFRESH MATERIALIZED VIEW datos.v_finalidad_mes")
         conn.execute("UPDATE datos.orden o SET tipo_gasto = f.tipo_gasto FROM datos.finalidad f "
                      "WHERE o.codigo_finalidad = f.codigo_finalidad")
 

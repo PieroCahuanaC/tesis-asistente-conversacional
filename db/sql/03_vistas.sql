@@ -1,10 +1,22 @@
--- Vistas de consulta (se recrean en cada migración; no guardan datos).
+-- Vistas de consulta (se recrean en cada migración). v_finalidad_mes es MATERIALIZADA: se calcula una
+-- vez y se refresca al cargar datos (scripts/cargar_mef.py); así cada consulta tarda milisegundos.
 
 -- Situación presupuestal de cada finalidad al cierre de cada mes.
 -- Saldo al mes m = PIM vigente a la fecha de corte - certificación acumulada de enero a m.
 -- El PIM se publica solo como monto anual (MES_EJE = 0): no hay PIM histórico mes a mes.
-DROP VIEW IF EXISTS datos.v_finalidad_mes;
-CREATE VIEW datos.v_finalidad_mes AS
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+               WHERE n.nspname = 'datos' AND c.relname = 'v_finalidad_mes' AND c.relkind = 'v') THEN
+        EXECUTE 'DROP VIEW datos.v_finalidad_mes';
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+               WHERE n.nspname = 'datos' AND c.relname = 'v_finalidad_mes' AND c.relkind = 'm') THEN
+        EXECUTE 'DROP MATERIALIZED VIEW datos.v_finalidad_mes';
+    END IF;
+END $$;
+
+CREATE MATERIALIZED VIEW datos.v_finalidad_mes AS
 WITH marco AS (
     SELECT anio, finalidad, sum(pia) AS pia, sum(pim) AS pim
     FROM datos.ejecucion_presupuestal
@@ -48,5 +60,7 @@ LEFT JOIN nombre n USING (anio, finalidad)
 LEFT JOIN flujo f USING (anio, finalidad, mes)
 WINDOW w AS (PARTITION BY g.anio, g.finalidad ORDER BY g.mes);
 
-COMMENT ON VIEW datos.v_finalidad_mes IS
+CREATE UNIQUE INDEX v_finalidad_mes_idx ON datos.v_finalidad_mes (anio, mes, finalidad);
+
+COMMENT ON MATERIALIZED VIEW datos.v_finalidad_mes IS
   'Por finalidad y mes: PIM anual, certificación/compromiso/devengado acumulados al cierre del mes, saldo (PIM - certificación acumulada) y avance de ejecución';
