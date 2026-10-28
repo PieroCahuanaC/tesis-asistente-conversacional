@@ -17,7 +17,7 @@ en la Municipalidad de Uchumayo, 2023-2025* (Arenas Ichocan y Cahuana Cabrera, U
 | Ingesta de la Consulta Amigable (MEF) y vista de saldo por finalidad y mes | listo |
 | Las 7 herramientas de C3 (Tabla 11), contrastadas con cálculos independientes | listas |
 | Orquestador C1/C2/C3 (mismo bucle, prompts versionados en `prompts/`) y comando `scripts/preguntar.py` | listo |
-| Plantilla del banco de preguntas (60 candidatas) y conciliación de referencias | lista: falta que el equipo complete las 230 preguntas |
+| Banco de 230 preguntas y solucionario por doble cálculo A (SQL) / B (Python sobre archivos): 207/207 coinciden | listo: falta la verificación manual del 20 % y el juicio de expertos |
 | Ejecución por lotes, calificación y estadística | siguiente |
 | API (FastAPI), interfaz y panel (Streamlit), autenticación, Docker | S4 |
 
@@ -33,9 +33,10 @@ src/asistente/
   llm/                    interfaz del modelo de lenguaje y adaptadores
   bitacora/               registro de cada ejecución (Ficha 4)
   herramientas/           herramientas de consulta de C3 (Tabla 11)
+  evaluacion/             criterio de corrección, familias de preguntas y doble cálculo del solucionario
 prompts/                  instrucciones de cada configuración (versionadas; su sha256 va a la bitácora)
 scripts/                  cargar_pte.py, filtrar_mef.py, cargar_mef.py, diagnostico_pte.py, preguntar.py,
-                          generar_banco.py, comparar_referencias.py
+                          generar_banco.py, calcular_referencias.py
 eval/banco/               banco de preguntas (Excel) con el solucionario
 reports/                  evidencia generada (tablas y figuras), versionada
 tests/                    pytest

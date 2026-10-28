@@ -7,7 +7,7 @@ Uso:  python scripts/generar_banco.py            (no sobrescribe un banco existe
 Las candidatas son un punto de partida: los investigadores las revisan, corrigen o descartan y
 escriben las que faltan hasta 230. El script NO calcula respuestas: el solucionario lo escribe cada
 investigador con su propio SQL (cálculo independiente, sección 3.5.3) y se compara con
-scripts/comparar_referencias.py. La selección es reproducible (semilla fija).
+scripts/calcular_referencias.py (D24). La selección es reproducible (semilla fija).
 """
 from __future__ import annotations
 
