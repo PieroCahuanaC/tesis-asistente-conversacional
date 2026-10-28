@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from asistente.config import RAIZ  # noqa: E402
 from asistente.db.conexion import conectar_admin  # noqa: E402
-from asistente.evaluacion.calificar import calificar, referencia_de  # noqa: E402
+from asistente.evaluacion.calificar import _plano_texto, calificar, referencia_de  # noqa: E402
 from asistente.orquestador import ERROR_MAX_PASOS  # noqa: E402
 
 CONSULTA = """
@@ -43,9 +43,13 @@ def main() -> int:
         filas = c.execute(CONSULTA, (a.lote, ERROR_MAX_PASOS + "%")).fetchall()
         if not filas:
             raise SystemExit(f"El lote «{a.lote}» no tiene ejecuciones válidas.")
+        nombres: dict[str, set[str]] = {}
+        for cod, nombre in c.execute("SELECT DISTINCT finalidad, nombre_meta FROM datos.ejecucion_presupuestal "
+                                     "WHERE nombre_meta IS NOT NULL").fetchall():
+            nombres.setdefault(cod, set()).add(_plano_texto(nombre))
         salida = []
         for (id_ej, pid, conf, rep, resp, t, ti, to, costo, texto, fam, crit, tipo, dif, ref, pasos) in filas:
-            r = calificar(resp or "", texto, fam, crit, referencia_de(ref), pasos)
+            r = calificar(resp or "", texto, fam, crit, referencia_de(ref), pasos, nombres)
             salida.append(dict(id_ejecucion=str(id_ej), id_pregunta=pid, configuracion=conf, repeticion=rep, tipo=tipo,
                                dificultad=dif, familia=fam, correcta=r.correcta, abstencion=r.abstencion,
                                con_cifras=r.con_cifras, cifras_no_sustentadas=r.cifras_no_sustentadas,

@@ -72,3 +72,32 @@ def test_cifras_no_sustentadas():
     r = _c("Alcanza: saldo S/ 161 487,00, sobran S/ 66 487,00.", "alcanza", [[161487.0, 66487.0, "alcanza"]],
            pregunta="¿Alcanza para S/ 95 000?", pasos=[{"saldo": 161487.0}])
     assert r.cifras_no_sustentadas == 0                      # 66 487 = 161 487 − 95 000
+
+
+def test_lista_por_nombre_o_por_valor():
+    ref = [["0388188", 11027071.0], ["0388534", 5978802.0]]
+    nombres = {"0388188": {"mejoramiento de la prestacion de servicios municipales en la municipalidad distrital de uchumayo"},
+               "0388534": {"mejoramiento del servicio de movilidad urbana de la via lateral 5"}}
+    t = ("1. **MEJORAMIENTO DE LA PRESTACIÓN DE SERVICIOS MUNICIPALES EN LA MUNICIPALIDAD DISTRITAL DE UCHUMAYO** – S/ 11 027 071,00\n"
+         "2. Otra meta con nombre abreviado – S/ 5 978 802,00")
+    assert calificar(t, "¿?", "top_pim", "lista", ref, [], nombres).correcta
+    ref2 = [["0367541"], ["0397828"]]
+    nom2 = {"0367541": {"mejoramiento del local de usos multiples de pan de azucar en la asociacion"},
+            "0397828": {"creacion del servicio de agua"}}
+    assert not calificar("- MEJORAMIENTO DEL LOCAL DE USOS MULTIPLES DE PAN DE AZÚCAR EN LA ASOCIACIÓN", "¿?",
+                         "listar_avance_mayor", "lista", ref2, [], nom2).correcta
+    assert not calificar("Son 0367541, 0397828 y 0000888.", "¿?", "listar_avance_mayor", "lista", ref2, []).correcta
+
+
+def test_variacion_sin_porcentaje_si_no_se_pide():
+    ref = [[7637131.29, 8.61]]
+    t = "El devengado aumentó en S/ 7 637 131,29."
+    assert _c(t, "var_total", ref, pregunta="¿En cuánto cambió el devengado total de 2024 a 2025?").correcta
+    assert not _c(t, "var_dev", ref, pregunta="¿Cómo varió (en soles y en porcentaje)?").correcta
+
+
+def test_alcanza_con_otras_palabras():
+    assert _c("Sí, el saldo es S/ 482 457,00, por lo que cubre el requerimiento.", "alcanza",
+              [[482457.0, 437457.0, "alcanza"]]).correcta
+    assert _c("El saldo es S/ 9 502,35. La solicitud supera el saldo en S/ 10 497,65.", "alcanza",
+              [[9502.35, -10497.65, "no alcanza"]]).correcta

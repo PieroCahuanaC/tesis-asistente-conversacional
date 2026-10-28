@@ -121,8 +121,10 @@ def _coincide(ref: float, valores: set[float], clase: str) -> bool:
 def _contiene_texto(col: str, ref, texto_n: str, familia: str) -> bool:
     r = normalizar(str(ref))
     if col == "resultado":
-        negativo = bool(re.search(r"\bno (le )?alcanza|\binsuficiente|\bfaltar[ií]a|\bfaltan\b|\bno es suficiente", texto_n))
-        return negativo if r == "no alcanza" else (not negativo and bool(re.search(r"\balcanza|\bsuficiente|\bsobrar", texto_n)))
+        negativo = bool(re.search(r"\bno (le )?(alcanza|cubre|es suficiente)|\binsuficiente|\bfaltar[ií]an?\b|\bfaltan\b"
+                                  r"|\b(supera|excede|sobrepasa) (el|al|su) saldo|\bsaldo (es )?(insuficiente|menor)|\bdeficit", texto_n))
+        positivo = bool(re.search(r"\balcanza|\bsuficiente|\bsobrar|\bcubre|\bsi,? (le )?(alcanza|cubre|es suficiente)|\bdisponible para", texto_n))
+        return negativo if r == "no alcanza" else (not negativo and positivo)
     if col == "supera":
         negativo = bool(re.search(r"\bno (lo )?supera|\bno (lo )?sobrepasa|\bno alcanza|\bpor debajo|\bno excede|\binferior", texto_n))
         return negativo if r == "no" else not negativo
@@ -199,8 +201,30 @@ def _numeros_de(obj) -> set[float]:
     return out
 
 
+def _plano_texto(t: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", normalizar(t))).strip()
+
+
+def _lista(filas: list, texto_n: str, cifras_texto: set[float], nombres: dict[str, set[str]]) -> tuple[bool, str]:
+    """Cada meta esperada debe aparecer por su código, por su nombre (inicio del nombre del MEF) o, en los
+    rankings, por su valor; y no debe mencionarse ningún código que no esté en la lista."""
+    plano = _plano_texto(texto_n)
+    dados = set(re.findall(r"\b\d{7}\b", texto_n))
+    faltan = []
+    for fila in filas:
+        cod = str(fila[0])
+        por_codigo = cod in dados
+        por_nombre = any(n[:60] and n[:60] in plano for n in nombres.get(cod, ()))
+        por_valor = len(fila) > 1 and abs(float(fila[1])) >= 100 and _coincide(float(fila[1]), cifras_texto, "monto")
+        if not (por_codigo or por_nombre or por_valor):
+            faltan.append(cod)
+    sobran = sorted(dados - {str(f[0]) for f in filas})
+    ok = not faltan and not sobran
+    return ok, "lista correcta" if ok else f"lista: faltan {faltan} sobran {sobran}"
+
+
 def calificar(respuesta: str, pregunta: str, familia: str, criterio: str, referencia,
-              resultados_pasos: list) -> Resultado:
+              resultados_pasos: list, nombres: dict[str, set[str]] | None = None) -> Resultado:
     texto = respuesta or ""
     abst = texto.strip().startswith(MARCA_ABSTENCION)
     texto_n = normalizar(texto)
@@ -221,14 +245,13 @@ def calificar(respuesta: str, pregunta: str, familia: str, criterio: str, refere
     filas = referencia
     todas = _plano(cifras(texto))
     if familia in LISTAS:
-        esperados = {normalizar(str(f[0])) for f in filas}
-        dados = set(re.findall(r"\b\d{7}\b", texto_n))
-        ok = dados == esperados
-        return Resultado(ok, False, no_sust, bool(nums),
-                         "lista correcta" if ok else f"lista: faltan {sorted(esperados - dados)} sobran {sorted(dados - esperados)}")
+        ok, detalle = _lista(filas, texto_n, todas, nombres or {})
+        return Resultado(ok, False, no_sust, bool(nums), detalle)
 
     cols = COLUMNAS[familia]
     exigidas = REQUERIDAS.get(familia, cols)
+    if familia in ("var_dev", "var_total") and not re.search(r"porcentaj|%", normalizar(pregunta)):
+        exigidas = ["diferencia"]                     # «¿en cuánto cambió?» pide la diferencia, no el porcentaje
     fallas = []
     for col, ref in zip(cols, filas[0]):
         if col not in exigidas:
