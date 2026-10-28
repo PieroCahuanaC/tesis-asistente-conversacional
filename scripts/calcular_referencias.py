@@ -31,6 +31,7 @@ from asistente.evaluacion import calculo_a as A  # noqa: E402
 from asistente.evaluacion import calculo_b as B  # noqa: E402
 from asistente.evaluacion.comparar import NO_RESPONDIBLE, resultados_equivalentes  # noqa: E402
 from asistente.evaluacion.familias import INTERPRETACION, clasificar  # noqa: E402
+from asistente.evaluacion.guia_verificacion import PREPARACION, pasos  # noqa: E402
 from asistente.sql_guard.ejecutor import ejecutar  # noqa: E402
 
 VERDE = PatternFill("solid", fgColor="C6EFCE")
@@ -39,7 +40,7 @@ GRIS = PatternFill("solid", fgColor="E7E6E6")
 AMARILLO = PatternFill("solid", fgColor="FFF2CC")
 RENOMBRAR = {"SQL_Rodrigo": "SQL_A", "SQL_Tony": "Calculo_B", "Resultado_Rodrigo": "Resultado_A",
              "Resultado_Tony": "Resultado_B"}
-NUEVAS = [("Familia", 20), ("Verifica", 11), ("Verificacion_manual", 22)]
+NUEVAS = [("Familia", 20), ("Verifica", 11)]
 INVESTIGADORES = ["Rodrigo", "Tony"]
 TRAMO_ESTADO = "Entre 2024-08 y 2025-03 el estado de las órdenes no está actualizado en el PTE: solo se excluyen las anuladas que figuran como tales."
 FAMILIAS_MONTO_ORDENES = {"monto_periodo", "ordenes_periodo", "promedio", "comp_tipo_monto", "max_orden", "top_ordenes"}
@@ -100,6 +101,9 @@ def main() -> int:
         if viejo in cab:
             ws.cell(1, cab.pop(viejo), nuevo)
     cab = {c.value: c.column for c in ws[1]}
+    if "Verificacion_manual" in cab:          # versión anterior: la verificación pasa a su propia hoja
+        ws.delete_cols(cab["Verificacion_manual"])
+    cab = {c.value: c.column for c in ws[1]}
     col_sig = ws.max_column + 1
     for nombre, ancho in NUEVAS:
         if nombre not in cab:
@@ -113,6 +117,7 @@ def main() -> int:
     asignacion = sortear_verificacion(filas, ajustes()["llm"]["semilla"])
 
     resumen = defaultdict(int)
+    a_verificar = []
     with conectar_ro() as conn:
         for f in filas:
             r = f["_r"]
@@ -154,14 +159,53 @@ def main() -> int:
                     c.fill = GRIS
             ws.cell(r, cab["Coinciden"]).fill = VERDE if celdas["Coinciden"] == "SÍ" else ROJO
             if celdas["Verifica"]:
-                ws.cell(r, cab["Verificacion_manual"]).fill = AMARILLO
+                origen, guia = pasos(fam)
+                a_verificar.append([f["ID"], celdas["Verifica"], f["Pregunta"], origen, guia, celdas["Valor_referencia"],
+                                    celdas["Observaciones"]])
 
+    _hoja_verificacion(wb, sorted(a_verificar, key=lambda x: (x[1], x[0])))
     _instrucciones(wb, commit_actual())
     wb.save(args.archivo)
     n_v = {i: sum(1 for v in asignacion.values() if v == i) for i in INVESTIGADORES}
     print(f"Coinciden: {resumen['coinciden']} · difieren: {resumen['difieren']} · no respondibles: {resumen['no_respondible']}")
     print(f"Verificación manual: {n_v}")
     return 1 if resumen["difieren"] else 0
+
+
+def _hoja_verificacion(wb, filas: list[list]) -> None:
+    """Hoja para la verificación manual del 20 % (lo que ya hayan anotado se conserva)."""
+    from openpyxl.worksheet.datavalidation import DataValidation
+    previo = {}
+    if "Verificacion" in wb.sheetnames:
+        v = wb["Verificacion"]
+        h = {c.value: c.column for c in v[len(PREPARACION) + 2]}
+        if "ID" in h:
+            for r in range(len(PREPARACION) + 3, v.max_row + 1):
+                pid = v.cell(r, h["ID"]).value
+                if pid:
+                    previo[pid] = [v.cell(r, h[k]).value for k in ("Valor_encontrado", "Resultado", "Comentario")]
+        del wb["Verificacion"]
+    v = wb.create_sheet("Verificacion", 1)
+    for i, t in enumerate(PREPARACION, start=1):
+        v.cell(i, 1, t).font = Font(bold=t.isupper() and bool(t))
+    fila_cab = len(PREPARACION) + 2
+    cab = ["ID", "Verifica", "Pregunta", "Archivo", "Pasos", "Valor_referencia", "Interpretación",
+           "Valor_encontrado", "Resultado", "Comentario"]
+    anchos = [7, 10, 45, 34, 70, 26, 40, 22, 13, 35]
+    for j, (c, a) in enumerate(zip(cab, anchos), start=1):
+        v.cell(fila_cab, j, c).font = Font(bold=True)
+        v.column_dimensions[v.cell(fila_cab, j).column_letter].width = a
+    dv = DataValidation(type="list", formula1='"conforme,observada"', allow_blank=True)
+    v.add_data_validation(dv)
+    for i, fila in enumerate(filas, start=fila_cab + 1):
+        for j, x in enumerate(fila + previo.get(fila[0], [None, None, None]), start=1):
+            c = v.cell(i, j, x)
+            c.alignment = Alignment(wrap_text=True, vertical="top")
+            if j >= 8:
+                c.fill = AMARILLO
+        dv.add(v.cell(i, 9))
+    v.freeze_panes = v.cell(fila_cab + 1, 3)
+    v.auto_filter.ref = f"A{fila_cab}:J{fila_cab + len(filas)}"
 
 
 def _instrucciones(wb, commit: str) -> None:
@@ -174,16 +218,15 @@ def _instrucciones(wb, commit: str) -> None:
         "1. Cálculo A (columna SQL_A): una consulta SQL por pregunta sobre la base integrada, ejecutada con el rol de solo lectura.",
         "2. Cálculo B (columna Calculo_B): un programa en Python que lee directamente los .xls del PTE y los CSV del MEF, sin pasar por la base.",
         "3. Coinciden = SÍ cuando A y B dan lo mismo (tolerancia S/ 1 o 0,5 %; listas sin importar el orden). Solo entonces se llena Valor_referencia.",
-        "4. Observaciones explica exactamente qué se calculó (qué se suma, qué se excluye). Si no están de acuerdo con una interpretación, anótenlo en Verificacion_manual.",
-        "5. Verificación humana: cada investigador revisa las preguntas con su nombre en la columna Verifica (20 % sorteado y estratificado por tipo).",
-        "   Por cada una: buscar el dato en la Consulta Amigable o en el PTE, comparar con Valor_referencia y escribir en Verificacion_manual «conforme» u «observada: motivo».",
+        "4. Observaciones explica exactamente qué se calculó (qué se suma, qué se excluye). Si no están de acuerdo con una interpretación, anótenlo en la hoja Verificacion.",
+        "5. Verificación humana: hoja Verificacion. Cada investigador revisa a mano, en Excel y con los archivos originales, las preguntas con su nombre (20 % sorteado y estratificado por tipo).",
         "6. Juicio de expertos (Anexo 4) sobre las preguntas; luego se congela el conjunto de prueba y ya no se modifica.",
         "",
         "Para regenerar: python scripts/calcular_referencias.py (con este archivo CERRADO).",
         f"Generado con el commit {commit}.",
         "",
         "Leyenda de colores",
-        "Verde/rojo: Coinciden.   Gris: lo llena el script (no editar).   Amarillo: lo llenan ustedes (Verificacion_manual).",
+        "Verde/rojo: Coinciden.   Gris: lo llena el script (no editar).   Amarillo: lo llenan ustedes (hoja Verificacion).",
         "",
         "Reglas",
         "- NUNCA calcular el solucionario con las herramientas del asistente: sería corregir el examen con las respuestas del alumno.",
