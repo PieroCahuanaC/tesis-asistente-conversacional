@@ -33,6 +33,8 @@ src/asistente/
   llm/                    interfaz del modelo de lenguaje y adaptadores
   bitacora/               registro de cada ejecución (Ficha 4)
   herramientas/           herramientas de consulta de C3 (Tabla 11)
+  evaluacion/             conciliación de referencias del banco de preguntas
+  orquestador.py          bucle común de C1, C2 y C3
 prompts/                  instrucciones de cada configuración (versionadas; su sha256 va a la bitácora)
 scripts/                  cargar_pte.py, filtrar_mef.py, cargar_mef.py, diagnostico_pte.py, preguntar.py,
                           generar_banco.py, comparar_referencias.py
@@ -51,7 +53,7 @@ data/manifest_mef.csv     sha256 de cada CSV original del MEF (sí se versiona)
 2. **PostgreSQL 16**, de una de estas dos formas:
    - Docker Desktop: `docker compose up -d db`
    - Instalador nativo de PostgreSQL 16 (puerto 5432, usuario `postgres`).
-3. Entorno e dependencias:
+3. Entorno y dependencias:
    ```powershell
    python -m venv .venv
    .venv\Scripts\activate
