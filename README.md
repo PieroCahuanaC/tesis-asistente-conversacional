@@ -19,8 +19,8 @@ en la Municipalidad de Uchumayo, 2023-2025* (Arenas Ichocan y Cahuana Cabrera, U
 | Orquestador C1/C2/C3 (mismo bucle, prompts versionados en `prompts/`) y comando `scripts/preguntar.py` | listo |
 | Banco de 230 preguntas y solucionario por doble cálculo A (SQL) / B (Python sobre archivos): 207/207 coinciden | listo: falta la verificación manual del 20 % y el juicio de expertos |
 | Ejecución por lotes (`cargar_banco.py`, `ejecutar_lote.py`): piloto, principal y estabilidad, reanudable | listo |
-| Calificación automática y estadística | siguiente |
-| API (FastAPI), interfaz y panel (Streamlit), autenticación, Docker | S4 |
+| Calificación automática (`calificar_lote.py`) y estadística de 3.6 con figuras (`analizar_lote.py`) | listo; falta calibrar con el piloto |
+| API, chat, panel, autenticación y Docker (S4) | siguiente |
 
 ## Estructura
 
